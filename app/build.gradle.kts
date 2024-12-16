@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.lanlinju.animius"
+    namespace = "com.laqoome.laqoo"
     compileSdk = 35
 
     defaultConfig {
