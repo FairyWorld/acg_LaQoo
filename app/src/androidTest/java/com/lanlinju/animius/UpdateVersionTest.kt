@@ -11,7 +11,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class UpdateVersionTest {
-    val UPDATE_ADDRESS = "https://api.github.com/repos/Lanlinju/Anime/releases/latest"
+    val UPDATE_ADDRESS = "https://api.github.com/repos/laqoome/LaQoo/releases/latest"
 
     @Test
     fun checkUpdate(): Unit = runBlocking {

@@ -25,7 +25,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Animius"
+rootProject.name = "LaQoo"
 include(":app")
 include(":video-player")
 include(":download")

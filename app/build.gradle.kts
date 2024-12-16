@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.lanlinju.animius"
+    namespace = "com.laqoome.laqoo"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.lanlinju.animius"
+        applicationId = "com.laqoome.laqoo"
         minSdk = 26
         targetSdk = 35
         versionCode = 30

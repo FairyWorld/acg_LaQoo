@@ -10,7 +10,7 @@ val TABS = listOf("一", "二", "三", "四", "五", "六", "日")
 const val CRASH_LOG_FILE = "anime_crash_logs.txt"
 
 const val GITHUB_ADDRESS = "https://laqoo.eu.org"
-const val CHECK_UPDATE_ADDRESS = "https://api.github.com/repos/lanlinju/Animius/releases/latest"
+const val CHECK_UPDATE_ADDRESS = "https://api.github.com/repos/laqoome/laqoo/releases/latest"
 const val GITHUB_RELEASE_ADDRESS = "https://laqoo.eu.org"
 
 const val ANIME_DATABASE = "anime_database.db"
