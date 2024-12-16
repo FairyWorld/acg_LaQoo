@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">Animius</string>
+    <string name="app_name">LaQoo</string>
     <string name="txt_empty_result">Oops...! we couldn\'t find the Anime</string>
-    <string name="lbl_anime">Anime</string>
+    <string name="lbl_anime">LaQoo</string>
     <string name="lbl_related_anime">相关推荐</string>
     <string name="lbl_anime_img">动漫封面</string>
     <string name="lbl_retry">重试</string>
@@ -56,11 +56,11 @@
 
     <!-- week  -->
     <string name="lbl_schedule">时间表</string>
-    <string name="github_repo">GitHub仓库</string>
+    <string name="github_repo">更新地址</string>
     <string name="switch_source">切换动漫源</string>
     <string name="check_update">检查更新</string>
     <string name="no_new_version">已是最新版本，无需更新</string>
-    <string name="check_updates_failed">连接Github超时，检测更新失败</string>
+    <string name="check_updates_failed">连接超时，检测更新失败</string>
     <string name="cancel">取消</string>
     <string name="confirm">确认</string>
     <string name="close">关闭</string>
