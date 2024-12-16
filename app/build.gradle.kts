@@ -8,15 +8,15 @@ plugins {
 }
 
 android {
-    namespace = "com.laqoome.laqoo"
+    namespace = "com.lanlinju.animius"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.laqoome.laqoo"
+        applicationId = "com.lanlinju.animius"
         minSdk = 26
         targetSdk = 35
         versionCode = 30
-        versionName = "1.1.0"
+        versionName = "1.2.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
