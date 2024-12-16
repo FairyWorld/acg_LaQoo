@@ -67,8 +67,8 @@ object SourceHolder {
             SourceMode.Anfuns -> AnfunsSource
             SourceMode.Girigiri -> GirigiriSource
             SourceMode.Nyafun -> NyafunSource
-            SourceMode.Cyclaqoo -> CyclaqooSource
-            SourceMode.Gogolaqoo -> GogolaqooSource
+            SourceMode.Cycanime -> CycanimeSource
+            SourceMode.Gogoanime -> GogoanimeSource
         }
     }
 }
