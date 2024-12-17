@@ -26,7 +26,4 @@
 
 ## 来源
 
-视频弹幕源来自于[弹弹play](https://www.dandanplay.com)开放API
-
-[lanlinju/Animius](https://github.com/github.com/lanlinju/Animius)：Animius
-一个简洁的播放动漫的App
+APP源码来自于[lanlinju/Animius](https://github.com/github.com/lanlinju/Animius)的Animius项目
