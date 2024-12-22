@@ -153,16 +153,10 @@
 					<label>组1</label>
 					<div class="item">
 						<div class="number" id="group1"></div>
-						<div class="square"></div>
+						
 					</div>
 				</div>
-				<div class="output">
-					<label>组2</label>
-					<div class="item">
-						<div class="number" id="group2"></div>
-						<div class="square"></div>
-					</div>
-				</div>
+
 				<div class="comment" id="comment"></div>
 				<div class="input">
 					<label>填满</label>
@@ -196,12 +190,12 @@
 							</li>
 							<li>
 								<label>固定个数</label>
-								<input type="range" id="set_number"  class="input_range" max="20" min="6" value="12">
+								<input type="range" id="set_number"  class="input_range" max="20" min="6" value="7">
 								<span id="set_number_show" class="input_show">12</span>
 							</li>
 							<li>
 								<label>时长(分钟)</label>
-								<input type="range" id="set_time" class="input_range" max="20" min="1" value="5">
+								<input type="range" id="set_time" class="input_range" max="20" min="1" value="3">
 								<span id="set_time_show" class="input_show">5</span>
 							</li>
 						</ul>
@@ -216,7 +210,7 @@
 	<script type="text/javascript">
 	var app = function(){
 		var group1 = [];   //组1数组
-		var group2 = [];   //组2数组
+		var group1 = [];   //组2数组
 		var Gameing = false; //是否在游戏中
 		var GetReady = false; //是否准备游戏界面，设置界面
 		var curGroup = 1; //当前正在输入的组
@@ -230,7 +224,7 @@
 		var setTimeFlow; //循环函数
 		var startLineTime; //开始一行时瞬间的客户端时间
 		var $group1 = document.getElementById("group1");
-		var $group2 = document.getElementById("group2");
+		var $group1 = document.getElementById("group1");
 		var $input = document.getElementById("keyborad");
 		var $input_tip = document.getElementById("input_tip");
 		var $start = document.getElementById("start");
@@ -325,7 +319,7 @@
 			$time_bar.getElementsByTagName("span")[0].getElementsByTagName("i")[0].innerHTML = "";
 			$time_bar.getElementsByTagName("span")[0].getElementsByTagName("i")[0].style.backgroundImage = "url(images/ali_029rs.gif)";
 			$group1.innerHTML = "";
-			$group2.innerHTML = "";
+			$group1.innerHTML = "";
 			valueLen = 0;
 			useTime = 0;
 			timeLen = 0;
@@ -366,7 +360,7 @@
 		function init() {
 			//产生两组数字
 			group1 = [];
-			group2 = [];
+			group1 = [];
 			updateNumber(1);
 			updateNumber(2);
 			//设置输入框最大输入长度，输入框获取焦点，显示提示文字
@@ -401,8 +395,8 @@
 				nowGroup = group1;
 				nowLength = length1;
 			}else if(curGroup == 2){
-				$nowGroup = $group2;
-				nowGroup = group2;
+				$nowGroup = $group1;
+				nowGroup = group1;
 				nowLength = length2;
 			}
 
@@ -465,7 +459,7 @@
 						addClass(document.querySelector(".right_top"), "square_down");
 						s_count += length1;
 					}else{
-						group2 = [];
+						group1 = [];
 						$input.setAttribute("maxlength", length1);
 						show_tip(lang.please_input1);
 						removeClass(document.querySelector(".right_top"), "square_down");
@@ -608,7 +602,7 @@
 				$nowGroup = $group1;
 				nowLength = length1;
 			}else if(index == 2){
-				$nowGroup = $group2;
+				$nowGroup = $group1;
 				nowLength = length2;
 			}
 			for (var i = 0; i < nowLength; i++) {
@@ -616,8 +610,8 @@
 					group1.push(Math.floor(Math.random()*10));
 					groupStr += "<span>" + group1[i] + "</span>";
 				}else{
-					group2.push(Math.floor(Math.random()*10));
-					groupStr += "<span>" + group2[i] + "</span>";
+					group1.push(Math.floor(Math.random()*10));
+					groupStr += "<span>" + group1[i] + "</span>";
 				}
 			}
 			$nowGroup.innerHTML = groupStr;
