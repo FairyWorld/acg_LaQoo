@@ -26,4 +26,4 @@
 
 ## 来源
 
-APP源码来自于[lanlinju/Animius](https://github.com/github.com/lanlinju/Animius)的Animius项目
+APP源码来自于[lanlinju/Animius](https://github.com/lanlinju/Animius)的Animius项目
