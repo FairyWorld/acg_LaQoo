@@ -26,4 +26,8 @@
 
 ## 来源
 
+<<<<<<< HEAD
 APP源码来自于[lanlinju/Animius](https://github.com/lanlinju/Animius)的Animius项目
+=======
+APP源码来自于[lanlinju/Animius](https://github.com/lanlinju/Animius)的Animius项目
+>>>>>>> c555e9debc4781fb2f57903ffc0592cf6277e871
