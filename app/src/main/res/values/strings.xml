@@ -60,7 +60,7 @@
     <string name="switch_source">切换动漫源</string>
     <string name="check_update">检查更新</string>
     <string name="no_new_version">已是最新版本，无需更新</string>
-    <string name="check_updates_failed">连接超时，检测更新失败</string>
+    <string name="check_updates_failed">连接Github超时，检测更新失败</string>
     <string name="cancel">取消</string>
     <string name="confirm">确认</string>
     <string name="close">关闭</string>
@@ -118,4 +118,8 @@
     <string name="auto_check_update">自动更新</string>
     <string name="channel_selection">线路选择</string>
     <string name="channel_number">线路%1$s</string>
+
+    <!-- 历史记录界面 -->
+    <string name="clear_all_histories">清除全部记录</string>
+    <string name="are_you_sure_you_want_to_clear_all_histories">确定要清除所有历史记录吗？</string>
 </resources>

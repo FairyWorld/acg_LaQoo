@@ -15,13 +15,18 @@ android {
         applicationId = "com.laqoome.laqoo"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.1.0"
+        versionCode = 12
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        val dandanplayAppId = System.getenv("DANDANPLAY_APP_ID") ?: ""
+        val dandanplayAppSecret = System.getenv("DANDANPLAY_APP_SECRET") ?: ""
+        buildConfigField("String", "DANDANPLAY_APP_ID", "\"$dandanplayAppId\"")
+        buildConfigField("String", "DANDANPLAY_APP_SECRET", "\"$dandanplayAppSecret\"")
 
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")

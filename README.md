@@ -6,6 +6,10 @@
 
 点击此链接[下载地址](https://app.laqoo.eu.org/)
 
+## 来源
+
+原始源代码来自于[lanlinju/Animius](https://github.com/lanlinju/Animius)的Animius项目
+
 ## 相关功能
 
 - [x] 首页推荐
@@ -23,11 +27,3 @@
 
 
 
-
-## 来源
-
-<<<<<<< HEAD
-APP源码来自于[lanlinju/Animius](https://github.com/lanlinju/Animius)的Animius项目
-=======
-APP源码来自于[lanlinju/Animius](https://github.com/lanlinju/Animius)的Animius项目
->>>>>>> c555e9debc4781fb2f57903ffc0592cf6277e871
