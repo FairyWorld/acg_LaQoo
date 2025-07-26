@@ -43,6 +43,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            isShrinkResources = true 
+            isMinifyEnabled = true 
+            // signingConfig = signingConfigs.findByName("debug") 
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
         release {
             isShrinkResources = true
             isMinifyEnabled = true
@@ -53,6 +62,7 @@ android {
             )
         }
     }
+
     applicationVariants.all {
         outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
