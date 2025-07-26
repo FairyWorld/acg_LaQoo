@@ -1,12 +1,12 @@
 package com.lanlinju.animius.presentation.screen.videoplayer
 
+import android.app.Application
 import androidx.core.content.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.anime.danmaku.api.DanmakuSession
-import com.lanlinju.animius.application.AnimeApplication
 import com.lanlinju.animius.domain.model.Episode
 import com.lanlinju.animius.domain.model.Video
 import com.lanlinju.animius.domain.model.WebVideo
@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,6 +38,7 @@ class VideoPlayerViewModel @Inject constructor(
     private val roomRepository: RoomRepository,
     private val animeRepository: AnimeRepository,
     private val danmakuRepository: DanmakuRepository,
+    private val application: Application
 ) : ViewModel() {
 
     // 保存视频状态的流，默认为加载中
@@ -43,10 +46,10 @@ class VideoPlayerViewModel @Inject constructor(
     val videoState: StateFlow<Resource<Video>> get() = _videoState
 
     // 获取保存的偏好设置，初始化弹幕启用状态
-    private val preferences = AnimeApplication.getInstance().preferences
-    private val _enabledDanmaku =
+    private val preferences = application.preferences
+    private val _danmakuEnabled =
         MutableStateFlow(preferences.getBoolean(KEY_DANMAKU_ENABLED, false))
-    val enabledDanmaku = _enabledDanmaku.asStateFlow()
+    val danmakuEnabled = _danmakuEnabled.asStateFlow()
 
     private val _danmakuSession = MutableStateFlow<DanmakuSession?>(null)
     val danmakuSession = _danmakuSession.asStateFlow()
@@ -59,6 +62,9 @@ class VideoPlayerViewModel @Inject constructor(
     private var currentEpisodeUrl: String = ""
     private var currentEpisodeIndex: Int = 0
     private var historyId: Long = -1L
+
+    // 自动连播相关
+    private var autoContinuePlayJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -189,7 +195,7 @@ class VideoPlayerViewModel @Inject constructor(
         _danmakuSession.value = null // 清除当前剧集的弹幕
 
         // 如果未启用了弹幕，直接返回
-        if (!_enabledDanmaku.value) return
+        if (!_danmakuEnabled.value) return
 
         viewModelScope.launch {
             _videoState.value.data?.let { video ->
@@ -205,7 +211,7 @@ class VideoPlayerViewModel @Inject constructor(
      * @param enabled 弹幕启用状态
      */
     fun setEnabledDanmaku(enabled: Boolean) {
-        _enabledDanmaku.value = enabled
+        _danmakuEnabled.value = enabled
         preferences.edit { putBoolean(KEY_DANMAKU_ENABLED, enabled) }
         viewModelScope.launch {
             // 如果启用了弹幕且当前弹幕会话为空，则获取弹幕会话
@@ -241,20 +247,38 @@ class VideoPlayerViewModel @Inject constructor(
     }
 
     /**
+     * 播放器播放结束时触发，启动 3 秒延迟的自动连播
+     */
+    fun startAutoContinuePlay(currPlayPosition: Long) {
+        cancelAutoContinuePlay()
+        autoContinuePlayJob = viewModelScope.launch {
+            delay(3000)
+            playNextEpisode(currPlayPosition)
+        }
+    }
+
+    fun cancelAutoContinuePlay() {
+        autoContinuePlayJob?.cancel()
+        autoContinuePlayJob = null
+    }
+
+    /**
      * 切换到下一集
      * @param currPlayPosition 当前视频的播放位置, 单位：毫秒
      */
-    fun nextEpisode(currPlayPosition: Long) {
-        _videoState.value.data?.let { video ->
-            val nextEpisodeIndex = video.currentEpisodeIndex + 1
-            if (nextEpisodeIndex < video.episodes.size) {
-                // 获取下一集视频
-                getVideo(
-                    video.episodes[nextEpisodeIndex].url,
-                    video.episodes[nextEpisodeIndex].name,
-                    nextEpisodeIndex,
-                    currPlayPosition
-                )
+    fun playNextEpisode(currPlayPosition: Long) {
+        viewModelScope.launch {
+            _videoState.value.data?.let { video ->
+                val nextEpisodeIndex = video.currentEpisodeIndex + 1
+                if (nextEpisodeIndex < video.episodes.size) {
+                    // 获取下一集视频
+                    getVideo(
+                        video.episodes[nextEpisodeIndex].url,
+                        video.episodes[nextEpisodeIndex].name,
+                        nextEpisodeIndex,
+                        currPlayPosition
+                    )
+                }
             }
         }
     }

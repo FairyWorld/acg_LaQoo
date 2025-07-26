@@ -5,13 +5,16 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.view.View
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -19,6 +22,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -31,6 +35,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,10 +44,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -75,11 +81,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -89,13 +98,18 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -109,16 +123,18 @@ import com.anime.danmaku.ui.rememberDanmakuHostState
 import com.lanlinju.animius.R
 import com.lanlinju.animius.domain.model.Episode
 import com.lanlinju.animius.domain.model.Video
+import com.lanlinju.animius.presentation.component.Forward85
 import com.lanlinju.animius.presentation.component.StateHandler
 import com.lanlinju.animius.presentation.screen.settings.DanmakuConfigData
 import com.lanlinju.animius.presentation.theme.AnimeTheme
+import com.lanlinju.animius.presentation.theme.padding
+import com.lanlinju.animius.util.KEY_AUTO_CONTINUE_PLAY_ENABLED
 import com.lanlinju.animius.util.KEY_AUTO_ORIENTATION_ENABLED
 import com.lanlinju.animius.util.KEY_DANMAKU_CONFIG_DATA
 import com.lanlinju.animius.util.isAndroidTV
 import com.lanlinju.animius.util.isTabletDevice
 import com.lanlinju.animius.util.isWideScreen
 import com.lanlinju.animius.util.openExternalPlayer
-import com.lanlinju.animius.util.preferences
 import com.lanlinju.animius.util.rememberPreference
 import com.lanlinju.videoplayer.AdaptiveTextButton
 import com.lanlinju.videoplayer.ResizeMode
@@ -154,9 +170,13 @@ fun VideoPlayScreen(
     viewModel: VideoPlayerViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
 ) {
-    val animeVideoState by viewModel.videoState.collectAsState()
+    val animeVideoState by viewModel.videoState.collectAsStateWithLifecycle()
+    val danmakuEnabled by viewModel.danmakuEnabled.collectAsStateWithLifecycle()
+    val danmakuSession by viewModel.danmakuSession.collectAsStateWithLifecycle()
     val view = LocalView.current
-    val activity = LocalContext.current as Activity
+    val activity = LocalActivity.current ?: LocalActivity.current as Activity
+    val isAutoOrientation by rememberPreference(KEY_AUTO_ORIENTATION_ENABLED, true)
+    var isAutoContinuePlayEnabled by rememberPreference(KEY_AUTO_CONTINUE_PLAY_ENABLED, false)
 
     // Handle screen orientation and screen-on state
     ManageScreenState(view, activity)
@@ -167,11 +187,8 @@ fun VideoPlayScreen(
         onFailure = { ShowFailurePage(viewModel, onBackClick) }
     ) { resource ->
         resource.data?.let { video ->
-            val isAutoOrientation =
-                activity.preferences.getBoolean(KEY_AUTO_ORIENTATION_ENABLED, true)
+
             val playerState = rememberVideoPlayerState(isAutoOrientation = isAutoOrientation)
-            val enabledDanmaku by viewModel.enabledDanmaku.collectAsStateWithLifecycle()
-            val danmakuSession by viewModel.danmakuSession.collectAsStateWithLifecycle()
 
             Box(
                 modifier = Modifier
@@ -192,25 +209,37 @@ fun VideoPlayScreen(
                         .focusable()
                         .defaultRemoteControlHandler(
                             playerState = playerState,
-                            onNextClick = { viewModel.nextEpisode(playerState.player.currentPosition) }
+                            onNextClick = { viewModel.playNextEpisode(playerState.player.currentPosition) }
                         )
                 ) {
                     VideoPlayerControl(
                         state = playerState,
                         title = "${video.title}-${video.episodeName}",
-                        enabledDanmaku = enabledDanmaku,
+                        danmakuEnabled = danmakuEnabled,
                         onBackClick = { handleBackPress(playerState, onBackClick, view, activity) },
-                        onNextClick = { viewModel.nextEpisode(playerState.player.currentPosition) },
-                        optionsContent = { OptionsContent(video) },
+                        onNextClick = {
+                            playerState.control.pause()
+                            playerState.setLoading(true)
+                            viewModel.playNextEpisode(playerState.player.currentPosition)
+                        },
+                        optionsContent = {
+                            OptionsContent(
+                                video = video,
+                                isAutoContinuePlayEnabled = isAutoContinuePlayEnabled,
+                                onAutoContinuePlayClick = { isAutoContinuePlayEnabled = it },
+                                onForwardClick = { playerState.control.skip(85000) }
+                            )
+                        },
                         onDanmakuClick = { viewModel.setEnabledDanmaku(it) }
                     )
                 }
 
                 // Danmaku and additional UI components
-                DanmakuHost(playerState, danmakuSession, enabledDanmaku)
-                VideoStateMessage(playerState)
+                DanmakuHost(playerState, danmakuSession, danmakuEnabled)
+                VideoStateMessage(playerState, viewModel, isAutoContinuePlayEnabled)
                 VolumeBrightnessIndicator(playerState)
                 VideoSideSheet(video, playerState, viewModel)
+                RegisterPlaybackStateListener(playerState, viewModel, isAutoContinuePlayEnabled)
 
                 // Save video position on dispose
                 DisposableEffect(Unit) {
@@ -393,31 +422,58 @@ private fun Modifier.defaultRemoteControlHandler(
 }
 
 @Composable
-private fun OptionsContent(video: Video) {
+private fun OptionsContent(
+    video: Video,
+    isAutoContinuePlayEnabled: Boolean,
+    onAutoContinuePlayClick: (Boolean) -> Unit,
+    onForwardClick: () -> Unit = {}
+) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
+    Row {
+        IconButton(onClick = onForwardClick) {
             Icon(
-                imageVector = Icons.Rounded.MoreVert,
-                contentDescription = null
+                imageVector = Icons.Rounded.Forward85,
+                contentDescription = "Forward 85s"
             )
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = {
-                    Text(text = stringResource(id = R.string.external_play))
-                },
-                onClick = {
-                    expanded = false
-                    openExternalPlayer(video.url)
-                }
-            )
+        Box {
+            IconButton(onClick = { expanded = true }) {
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = null
+                )
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(text = stringResource(id = R.string.external_play))
+                    },
+                    onClick = {
+                        expanded = false
+                        openExternalPlayer(video.url)
+                    }
+                )
+
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.auto_continue_play),
+                            color = if (isAutoContinuePlayEnabled) MaterialTheme.colorScheme.primary else Color.Black
+                        )
+                    },
+                    onClick = {
+                        onAutoContinuePlayClick(!isAutoContinuePlayEnabled)
+                    }
+                )
+            }
         }
     }
+
 }
 
 @SuppressLint("SourceLockedOrientationActivity")
@@ -467,24 +523,34 @@ private fun showSystemBars(view: View, activity: Activity) {
 }
 
 @Composable
-private fun VideoStateMessage(playerState: VideoPlayerState, modifier: Modifier = Modifier) {
+private fun VideoStateMessage(
+    playerState: VideoPlayerState,
+    viewModel: VideoPlayerViewModel,
+    isAutoContinuePlayEnabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val videoState = viewModel.videoState.collectAsState().value
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         if (playerState.isLoading.value && !playerState.isError.value && !playerState.isSeeking.value) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            CircularProgressIndicator()
         }
 
         if (playerState.isError.value) {
-            ShowVideoMessage(stringResource(id = R.string.video_error_msg), onRetryClick = {
-                playerState.control.retry()
-            })
+            ShowVideoMessage(
+                stringResource(id = R.string.video_error_msg),
+                onRetryClick = { playerState.control.retry() }
+            )
         }
 
-        if (playerState.isEnded.value) {
-            ShowVideoMessage(stringResource(id = R.string.video_ended_msg))
-            playerState.control.retry()
+        val hasNext = videoState.data?.let { it.currentEpisodeIndex + 1 < it.episodes.size } == true
+        if (playerState.isEnded.value && isAutoContinuePlayEnabled && hasNext && !playerState.isLoading.value) {
+            val countdown =
+                rememberCountdown(initialTime = 3, onFinished = { playerState.setLoading(true) })
+            FloatingMessageIndicator(stringResource(R.string.auto_play_next, countdown))
         }
 
         if (playerState.isSeeking.value) {
@@ -497,7 +563,52 @@ private fun VideoStateMessage(playerState: VideoPlayerState, modifier: Modifier 
         if (playerState.isLongPress.value) {
             FastForwardIndicator(Modifier.align(Alignment.TopCenter))
         }
+    }
+}
 
+@Composable
+fun rememberCountdown(
+    initialTime: Int = 3,
+    onTick: (Int) -> Unit = {},
+    onFinished: () -> Unit = {}
+): Int {
+    var remaining by remember { mutableIntStateOf(initialTime) }
+
+    LaunchedEffect(initialTime) {
+        remaining = initialTime
+        while (remaining > 0) {
+            delay(1000)
+            remaining--
+            onTick(remaining)
+        }
+        onFinished()
+    }
+
+    return remaining
+}
+
+@Composable
+fun RegisterPlaybackStateListener(
+    playerState: VideoPlayerState,
+    viewModel: VideoPlayerViewModel,
+    isAutoContinuePlayEnabled: Boolean
+) {
+
+    LaunchedEffect(isAutoContinuePlayEnabled) {
+        launch {
+            snapshotFlow { playerState.isEnded.value }.collect { isEnded ->
+                if (isEnded && isAutoContinuePlayEnabled) {
+                    viewModel.startAutoContinuePlay(playerState.player.currentPosition)
+                }
+            }
+        }
+        launch {
+            snapshotFlow { playerState.isSeeking.value }.collect { isSeeking ->
+                if (isSeeking && isAutoContinuePlayEnabled) {
+                    viewModel.cancelAutoContinuePlay() // 拖动进度条时调用，取消自动连播
+                }
+            }
+        }
     }
 }
 
@@ -507,7 +618,7 @@ private fun FastForwardIndicator(modifier: Modifier) {
         modifier = modifier
             .padding(top = dimensionResource(id = R.dimen.medium_padding))
             .height(40.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(Color.Black.copy(0.35f)),
         contentAlignment = Alignment.Center
     ) {
@@ -571,7 +682,7 @@ private fun VolumeBrightnessIndicator(
             modifier = modifier
                 .width(200.dp)
                 .aspectRatio(3.5f)
-                .clip(RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(Color.Black.copy(0.35f)),
             contentAlignment = Alignment.Center
         ) {
@@ -627,23 +738,51 @@ private fun TimelineIndicator(
     videoDurationMs: Long,
     modifier: Modifier = Modifier
 ) {
+    FloatingMessageIndicator(
+        text = prettyVideoTimestamp(
+            videoPositionMs.milliseconds,
+            videoDurationMs.milliseconds
+        ),
+        modifier = modifier
+    )
+}
+
+@Composable
+fun FloatingMessageIndicator(
+    text: String,
+    modifier: Modifier = Modifier,
+    minWidth: Dp = 120.dp,
+    minHeight: Dp = 48.dp,
+    backgroundColor: Color = Color.Black.copy(alpha = 0.7f),
+    shape: Shape = RoundedCornerShape(8.dp),
+    textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
+    textColor: Color = Color.White,
+    contentAlignment: Alignment = Alignment.Center,
+    contentPaddingValues: PaddingValues = PaddingValues(MaterialTheme.padding.medium)
+) {
     Box(
         modifier = modifier
-            .width(120.dp)
-            .aspectRatio(2.5f)
-            .clip(RoundedCornerShape(6.dp))
-            .background(Color.Black.copy(0.7f)),
-        contentAlignment = Alignment.Center
+            .defaultMinSize(minWidth, minHeight)
+            .clip(shape)
+            .background(backgroundColor),
+        contentAlignment = contentAlignment
     ) {
         Text(
-            text = prettyVideoTimestamp(
-                videoPositionMs.milliseconds,
-                videoDurationMs.milliseconds
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White
+            modifier = Modifier.padding(contentPaddingValues),
+            text = text,
+            style = textStyle,
+            color = textColor,
+            maxLines = 1,
         )
     }
+}
+
+@Preview
+@Composable
+private fun PreviewFloatingMessageIndicator() {
+    FloatingMessageIndicator(
+        text = "Hello World, Hello World, Hello World"
+    )
 }
 
 @Composable
@@ -698,7 +837,8 @@ private fun VideoSideSheet(
     var selectedResizeIndex by remember { mutableIntStateOf(0) }    // 适应
 
     if (playerState.isSpeedUiVisible.value) {
-        SpeedSideSheet(selectedSpeedIndex,
+        SpeedSideSheet(
+            selectedSpeedIndex,
             onSpeedClick = { index, (speedText, speed) ->
                 selectedSpeedIndex = index
                 playerState.setSpeedText(if (index == 3) "倍速" else speedText)
@@ -719,11 +859,14 @@ private fun VideoSideSheet(
     }
 
     if (playerState.isEpisodeUiVisible.value) {
-        var selectedEpisodeIndex by remember { mutableIntStateOf(video.currentEpisodeIndex) }
+        var selectedEpisodeIndex by remember(video.currentEpisodeIndex) { mutableIntStateOf(video.currentEpisodeIndex) }
         EpisodeSideSheet(
             episodes = video.episodes,
             selectedEpisodeIndex = selectedEpisodeIndex,
             onEpisodeClick = { index, episode ->
+                playerState.control.pause()
+                playerState.setLoading(true)
+                viewModel.cancelAutoContinuePlay()
                 selectedEpisodeIndex = index
                 viewModel.getVideo(
                     episode.url,
@@ -797,44 +940,46 @@ private fun EpisodeSideSheet(
 ) {
     val context = LocalContext.current
     val isAndroidTV = remember { isAndroidTV(context) }
-    SideSheet(onDismissRequest = onDismissRequest) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            horizontalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.small_padding)),
-            state = rememberLazyGridState(
-                initialFirstVisibleItemIndex = selectedEpisodeIndex,
-                -200
-            )
+    SideSheet(onDismissRequest = onDismissRequest, widthRatio = 0.38f) {
+
+        LazyColumn(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            state = rememberLazyListState(selectedEpisodeIndex, -200)
         ) {
             itemsIndexed(episodes) { index, episode ->
-
                 val focusRequester = remember { FocusRequester() }
                 var isFocused by remember { mutableStateOf(false) }
                 val selected = index == selectedEpisodeIndex
+
                 OutlinedButton(
                     onClick = { onEpisodeClick(index, episode) },
-                    contentPadding = PaddingValues(8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (isFocused && isAndroidTV) MaterialTheme.colorScheme.primary.copy(
-                            alpha = 0.3f
-                        ) else Color.Unspecified
-                    ),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                    shape = RoundedCornerShape(4.dp),
                     border = BorderStroke(
-                        if (isFocused && isAndroidTV) 2.dp else ButtonDefaults.outlinedButtonBorder().width,
-                        ButtonDefaults.outlinedButtonBorder().brush
+                        1.0.dp,
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline.copy(0.5f)
                     ),
                     modifier = Modifier
+                        .fillMaxWidth()
                         .onFocusChanged(onFocusChanged = { isFocused = it.isFocused })
-                        .scale(if (isFocused && isAndroidTV) 1.1f else 1f)
                         .focusRequester(focusRequester)
                         .focusable()
                 ) {
-                    Text(
-                        text = episode.name,
-                        color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (selected) {
+                            EpisodePlaybackIndicator(Modifier.align(Alignment.CenterStart))
+                        }
+
+                        Text(
+                            text = episode.name,
+                            color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
                 }
 
                 LaunchedEffect(selected) {
@@ -846,6 +991,93 @@ private fun EpisodeSideSheet(
         }
     }
 }
+
+@Preview
+@Composable
+fun PreviewEEpisodePlaybackIndicator() {
+    EpisodePlaybackIndicator(
+        modifier = Modifier
+            .background(Color.Black.copy(0.35f))
+            .padding(16.dp)
+    )
+}
+
+@Composable
+fun EpisodePlaybackIndicator(modifier: Modifier = Modifier) {
+    BouncingBarsAnimation(modifier)
+}
+
+@Composable
+private fun BouncingBarsAnimation(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "BouncingBars")
+    val barWidth = 3.dp
+    val maxHeight = 16.dp
+    val minHeight = 5.dp
+    val barSpacing = 2.dp
+    val durationMs = 800
+    val startOffset = durationMs / 3
+    val barColor = MaterialTheme.colorScheme.primary
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(barSpacing)
+    ) {
+        repeat(3) { index ->
+            val heightProgress by transition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = durationMs
+                        0f at 0
+                        1f at (durationMs / 2) //with FastOutSlowInEasing
+                        0f at durationMs
+                    },
+                    repeatMode = RepeatMode.Restart,
+                    initialStartOffset = StartOffset(index * startOffset)
+                ),
+                label = "bar_$index"
+            )
+
+            DynamicBar(
+                progress = heightProgress,
+                width = barWidth,
+                maxHeight = maxHeight,
+                minHeight = minHeight,
+                color = barColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun DynamicBar(
+    progress: Float,
+    width: Dp,
+    maxHeight: Dp,
+    minHeight: Dp,
+    color: Color
+) {
+    val density = LocalDensity.current
+    val animatedHeight = lerp(minHeight, maxHeight, progress)
+
+    Canvas(
+        modifier = Modifier
+            .width(width)
+            .height(maxHeight)
+    ) {
+        val barHeight = with(density) { animatedHeight.toPx() }
+        val cornerRadius = size.width / 2
+
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(0f, size.height - barHeight),
+            size = Size(size.width, barHeight),
+            cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+        )
+    }
+}
+
 
 // https://googlesamples.github.io/android-custom-lint-rules/checks/UnusedBoxWithConstraintsScope.md.html
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -886,15 +1118,16 @@ private fun SideSheet(
             }.invokeOnCompletion { onDismissRequest() }
         }
 
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = { position ->
-                    if (position.x < fullWidth - sideSheetWidthDp.toPx()) {
-                        dismissRequestHandler()
-                    }
-                })
-            }) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { position ->
+                        if (position.x < fullWidth - sideSheetWidthDp.toPx()) {
+                            dismissRequestHandler()
+                        }
+                    })
+                }) {
             AnimatedVisibility(
                 visibleState = visibleState,
                 modifier = Modifier.align(Alignment.CenterEnd),
@@ -905,7 +1138,7 @@ private fun SideSheet(
                     modifier = Modifier
                         .width(sideSheetWidthDp)
                         .fillMaxHeight()
-                        .background(color = Color.Black.copy(alpha = 0.8f))
+                        .background(color = Color.Black.copy(alpha = 0.85f))
                         .padding(8.dp)
                 ) {
                     content()
@@ -962,4 +1195,3 @@ fun SideSheetPreview() {
         }
     }
 }
-
