@@ -37,8 +37,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.imherrera.videoplayer.icons.Fullscreen
-import com.imherrera.videoplayer.icons.FullscreenExit
+import com.lanlinju.videoplayer.icons.Fullscreen
+import com.lanlinju.videoplayer.icons.FullscreenExit
 import com.lanlinju.videoplayer.component.Slider
 import com.lanlinju.videoplayer.icons.ArrowBackIos
 import com.lanlinju.videoplayer.icons.Pause
@@ -54,7 +54,7 @@ fun VideoPlayerControl(
     background: Color = Color.Black.copy(0.2f),
     contentColor: Color = Color.LightGray,
     progressLineColor: Color = MaterialTheme.colorScheme.inversePrimary,
-    enabledDanmaku: Boolean,
+    danmakuEnabled: Boolean,
     onBackClick: () -> Unit = {},
     onNextClick: () -> Unit = {},
     onDanmakuClick: (Boolean) -> Unit = {},
@@ -91,7 +91,7 @@ fun VideoPlayerControl(
                     modifier = Modifier.fillMaxWidth(),
                     progressLineColor = progressLineColor,
                     state = state,
-                    enabledDanmaku = enabledDanmaku,
+                    enabledDanmaku = danmakuEnabled,
                     onNextClick = onNextClick,
                     onDanmakuClick = onDanmakuClick
                 )

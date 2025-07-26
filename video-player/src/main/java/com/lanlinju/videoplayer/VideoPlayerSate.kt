@@ -74,7 +74,7 @@ class VideoPlayerStateImpl(
     override val isLoading = mutableStateOf(true)
     override val isEnded = mutableStateOf(false)
     override val isError = mutableStateOf(false)
-    override val playerState = mutableStateOf(player.playbackState)
+    override val playbackState = mutableStateOf(player.playbackState)
 
     override val isSeeking = mutableStateOf(false)
     override val isLongPress = mutableStateOf(false)
@@ -174,6 +174,13 @@ class VideoPlayerStateImpl(
             player.seekBack()
         }
 
+        override fun skip(skipMs: Long) {
+            controlUiLastInteractionMs = 0
+            if (videoDurationMs.value == 0L) return
+            val positionMs = (player.currentPosition + skipMs).coerceIn(0, videoDurationMs.value)
+            player.seekTo(positionMs)
+        }
+
         override fun retry() {
             isError.value = false
             isLoading.value = true
@@ -193,6 +200,10 @@ class VideoPlayerStateImpl(
         override fun setPlaybackSpeed(speed: Float) {
             player.setPlaybackSpeed(speed)
         }
+    }
+
+    override fun setLoading(loading: Boolean) {
+        isLoading.value = loading
     }
 
     private var pollVideoPositionJob: Job? = null
@@ -282,7 +293,7 @@ class VideoPlayerStateImpl(
 
     override fun onPlaybackStateChanged(playbackState: Int) {
         if (playbackState == Player.STATE_READY) videoDurationMs.value = player.duration
-        this.playerState.value = playbackState
+        this.playbackState.value = playbackState
         when (playbackState) {
             Player.STATE_IDLE -> Unit
             Player.STATE_BUFFERING -> isLoading.value = true
@@ -399,7 +410,7 @@ interface VideoPlayerState {
     val isLoading: State<Boolean>
     val isEnded: State<Boolean>
     val isError: State<Boolean>
-    val playerState: State<Int>
+    val playbackState: State<Int>
 
     val isSeeking: State<Boolean>
     val isLongPress: State<Boolean>
@@ -422,6 +433,8 @@ interface VideoPlayerState {
     val isResizeUiVisible: State<Boolean>
     val isEpisodeUiVisible: State<Boolean>
     val control: VideoPlayerControl
+
+    fun setLoading(loading: Boolean)
 
     fun onChangeVolume(value: Float)
     fun onChangeBrightness(value: Float)
@@ -458,6 +471,7 @@ interface VideoPlayerControl {
 
     fun forward()
     fun rewind()
+    fun skip(skipMs: Long)
 
     fun retry()
 
