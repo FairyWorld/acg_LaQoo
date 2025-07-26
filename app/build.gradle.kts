@@ -14,7 +14,7 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.lanlinju.animius"
+        applicationId = "com.laqoome.laqoo"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = compileSdk
         versionCode = 35
