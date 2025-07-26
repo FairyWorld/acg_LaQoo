@@ -12,7 +12,7 @@ import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
 
 object YhdmSource : AnimeSource {
-    override val DEFAULT_DOMAIN: String = "http://www.iyinghua.io"
+    override val DEFAULT_DOMAIN: String = "http://www.iyinghua.com"
     override var baseUrl = getDefaultDomain()
 
     override suspend fun getHomeData(): List<HomeBean> {
